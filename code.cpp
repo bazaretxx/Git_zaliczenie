@@ -16,12 +16,12 @@ int main() {
 
     std::ofstream plik_obliczeniowy("plik_obliczeniowy.cpp");
     plik_obliczeniowy << "#include <iostream>\n"
-                      << "int oblicz_kwadrat(int liczba) {\n"
-                      << "    return liczba * liczba;\n"
+                      << "int oblicz_dodawanie(int a, int b) {\n"
+                      << "    return a + b;\n"
                       << "}\n"
                       << "int main() {\n"
-                      << "    int wynik = oblicz_kwadrat(7);\n"
-                      << "    std::cout << \"Odpowiedź to: \" << wynik << std::endl;\n"
+                      << "    int wynik = oblicz_dodawanie(3, 4);\n"
+                      << "    std::cout << \"Wynik dodawania: \" << wynik << std::endl;\n"
                       << "    return 0;\n"
                       << "}\n";
     plik_obliczeniowy.close();
@@ -64,14 +64,68 @@ int main() {
     );
 
     // Dodanie i zatwierdzenie zmian dla pliku plik_obliczeniowy.cpp (podobnie jak dla plik_powitalny.cpp)
+    git_index_add_bypath(index, "plik_obliczeniowy.cpp");
+    git_index_write(index);
+
+    git_index_write_tree(&tree_id, index);
+
+    git_tree_lookup(&tree, repo, &tree_id);
+
+    git_commit *plik_obliczeniowy_commit = nullptr;
+    git_commit_create_v(
+        &plik_obliczeniowy_commit,
+        repo,
+        "HEAD",
+        author,
+        committer,
+        nullptr,
+        "Zmieniono kod obliczeniowy",
+        tree,
+        0,
+        nullptr
+    );
 
     // Kolejne zatwierdzenie zmian dla pliku plik_powitalny.cpp (podobnie jak dla plik_powitalny.cpp)
+    git_index_add_bypath(index, "plik_powitalny.cpp");
+    git_index_write(index);
+
+    git_index_write_tree(&tree_id, index);
+
+    git_tree_lookup(&tree, repo, &tree_id);
+
+    git_commit *plik_powitalny_commit_2 = nullptr;
+    git_commit_create_v(
+        &plik_powitalny_commit_2,
+        repo,
+        "HEAD",
+        author,
+        committer,
+        nullptr,
+        "Kolejne zmiany w pliku powitalnym",
+        tree,
+        1,
+        (const git_commit **)&plik_powitalny_commit
+    );
 
     // Wycofanie jednej zatwierdzonej zmiany (podobnie jak dla plik_powitalny.cpp)
+    git_commit *revert_commit = nullptr;
+    git_commit_lookup(&revert_commit, repo, git_commit_id(plik_powitalny_commit));
+
+    git_revert_options revert_options = GIT_REVERT_OPTIONS_INIT;
+    revert_options.mainline = 0;
+    revert_options.flags = GIT_REVERT_OPTIONS_NONE;
+
+    git_revert(repo, revert_commit, &revert_options);
 
     // Przesłanie zmian do zdalnego repozytorium (podobnie jak dla plik_powitalny.cpp)
 
     // Zwolnienie zasobów Git
+    git_commit_free(plik_powitalny_commit_2);
+    git_commit_free(plik_obliczeniowy_commit);
+    git_commit_free(revert_commit);
+    git_tree_free(tree);
+    git_index_free(index);
+    git_signature_free(author);
     git_repository_free(repo);
     git_libgit2_shutdown();
 
