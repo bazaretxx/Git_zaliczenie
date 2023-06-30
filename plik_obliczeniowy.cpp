@@ -1,0 +1,1 @@
+Wynik dodawania: 7
